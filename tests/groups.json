@@ -1,0 +1,118 @@
+{
+  "shared": [
+    "tests/test-runner.js",
+    "tests/index.html",
+    "tests/groups.json",
+    "tests/fixtures.js",
+    "tests/size-helpers.js",
+    "tests/layout-helpers.js",
+    "tests/brush-baseline.js"
+  ],
+  "groups": {
+    "geometry": {
+      "files": [
+        "geometry.test.js"
+      ],
+      "covers": [
+        "src/geometry.js",
+        "src/random.js",
+        "src/outline.js"
+      ],
+      "shards": 1
+    },
+    "outline": {
+      "files": [
+        "outline.test.js"
+      ],
+      "covers": [
+        "src/outline.js",
+        "src/geometry.js",
+        "src/random.js"
+      ],
+      "shards": 1
+    },
+    "generator": {
+      "files": [
+        "state-generator.test.js"
+      ],
+      "covers": [
+        "src/state-generator.js",
+        "src/outline.js",
+        "src/geometry.js",
+        "src/random.js",
+        "src/districts.js",
+        "src/formatters.js"
+      ],
+      "shards": 1
+    },
+    "custom-state": {
+      "files": [
+        "custom-state.test.js"
+      ],
+      "covers": [
+        "src/custom-state.js",
+        "src/state-generator.js",
+        "src/outline.js",
+        "src/geometry.js",
+        "src/random.js",
+        "src/districts.js",
+        "src/formatters.js"
+      ],
+      "shards": 4
+    },
+    "districts": {
+      "files": [
+        "districts.test.js",
+        "matchups.test.js"
+      ],
+      "covers": [
+        "src/districts.js",
+        "src/formatters.js",
+        "src/matchups.js",
+        "src/state-generator.js",
+        "src/outline.js",
+        "src/geometry.js",
+        "src/random.js"
+      ],
+      "shards": 1
+    },
+    "brush": {
+      "files": [
+        "brush.test.js"
+      ],
+      "covers": [
+        "src/brush.js",
+        "src/districts.js",
+        "src/formatters.js",
+        "src/state-generator.js",
+        "src/outline.js",
+        "src/geometry.js",
+        "src/random.js"
+      ],
+      "shards": 1
+    },
+    "ui": {
+      "files": [
+        "ui.test.js"
+      ],
+      "covers": [
+        "src",
+        "index.html",
+        "styles.css"
+      ],
+      "shards": 3
+    },
+    "layout": {
+      "files": [
+        "layout.test.js",
+        "summary-dock.test.js"
+      ],
+      "covers": [
+        "src",
+        "index.html",
+        "styles.css"
+      ],
+      "shards": 3
+    }
+  }
+}

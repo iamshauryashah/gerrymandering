@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Running tests…</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .pass { color: #0a6b2f; }
+    .fail { color: #b00020; font-weight: 700; }
+    #results { font: 14px ui-monospace, monospace; padding: 16px; }
+    #fixture { width: 1200px; }
+  </style>
+</head>
+<body>
+  <div id="results">Running tests…</div>
+  <div id="fixture"></div>
+  <!--
+    Open this page to run every group in one tab. Options in the address:
+      ?group=brush,geometry   only these groups (names are in groups.json)
+      ?shard=1/3&assign=hash:0,hash:2   only slice 1 of 3 of each group's tests (how the command splits a group; see test-runner.js)
+      ?report=1               post the result to /__result when done (used by scripts/test.py)
+    scripts/test.py runs the groups in parallel in headless Chrome; see its --help.
+  -->
+  <script type="module">
+    import { run } from './test-runner.js';
+    const params = new URLSearchParams(location.search);
+    const report = (body) => params.has('report') && fetch('/__result', {
+      method: 'POST',
+      body: JSON.stringify({ group: params.get('group'), shard: params.get('shard'), ...body }),
+    });
+    try {
+      const manifest = await (await fetch('./groups.json', { cache: 'no-store' })).json();
+      const names = params.get('group') ? params.get('group').split(',') : Object.keys(manifest.groups);
+      for (const name of names) {
+        if (!manifest.groups[name]) throw new Error(`Unknown test group: ${name}`);
+        for (const file of manifest.groups[name].files) await import(`./${file}`);
+      }
+      const shard = params.get('shard')?.split('/').map(Number) ?? null;
+      const assign = new Map((params.get('assign') ?? '').split(',').filter(Boolean).map((pair) => pair.split(':').map(Number)));
+      await report(await run(undefined, { shard, assign }));
+    } catch (error) {
+      // A test file that cannot load must still be reported, or the command would wait for it until it timed out.
+      document.title = `FAIL: ${error.message}`;
+      await report({ passed: 0, failed: 1, ms: 0, timings: [], failures: [{ name: 'the tests failed to load', message: String(error.stack ?? error) }] });
+    }
+  </script>
+</body>
+</html>

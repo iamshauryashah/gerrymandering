@@ -1,0 +1,546 @@
+:root {
+  --bg: #f5f2ea;
+  --ink: #1d2433;
+  --muted: #586174;
+  --card: #ffffff;
+  --accent: #0f766e;
+  --accent-soft: #e2f3f0;
+  --focus: #ffbf1f;
+  --radius: 12px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body { margin: 0; }
+
+.app { max-width: none; margin: 0 auto; padding: 12px; }
+.app-content { container-type: inline-size; container-name: app; }
+
+h1 {
+  margin: 0.25rem 0 0.15rem;
+  text-align: center;
+  font-size: clamp(1.45rem, 4vw, 2.4rem);
+  line-height: 1.15;
+}
+
+h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+
+.state-caption { margin: 0 0 0.5rem; text-align: center; color: var(--muted); }
+.state-caption a { color: inherit; }
+
+.top-bar { display: flex; flex-direction: column; align-items: center; }
+.toolbar { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+
+button { font: inherit; }
+
+button:focus-visible,
+.district-row:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.matchup-toggle,
+.new-map-button,
+.build-state-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 650;
+  cursor: pointer;
+}
+.matchup-toggle::before { content: "⇄"; }
+.matchup-toggle:hover,
+.new-map-button:hover,
+.build-state-button:hover { background: #ece8dc; }
+.new-map-button::before { content: "↻"; }
+.build-state-button::before { content: "✎"; }
+
+.editing-status {
+  margin: 0 0 2px;
+  padding: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.message-slot { min-height: 2.9rem; }
+.edit-message {
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  border: 2px solid #b3261e;
+  border-radius: var(--radius);
+  background: #fde8e8;
+  color: #7a1a14;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.error-message {
+  margin: 1rem auto;
+  max-width: 520px;
+  padding: 1rem;
+  border-radius: var(--radius);
+  background: #fde8e8;
+  text-align: center;
+}
+
+/* --- Page layout: one flat set of sections arranged by named areas --------------------------------------------------
+   One column by default (phones), two columns from 760 px of content, and a one-screen "workbench" when the window is at least
+   720 px tall and the content at least 1240 px wide (not while building a state). */
+.layout {
+  --dock: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "top" "map" "brush" "panels" "totals" "control" "legend" "hint" "notice";
+  gap: 12px;
+  max-width: 1208px;
+  margin: 0 auto;
+}
+.workspace { display: contents; }
+.top-bar { grid-area: top; }
+.error-message { grid-area: map; }
+.map-cell { grid-area: map; min-width: 0; }
+.brush-tool { grid-area: brush; min-width: 0; }
+.panels { grid-area: panels; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.state-totals { grid-area: totals; min-width: 0; }
+.control-total { grid-area: control; min-width: 0; }
+.legend { grid-area: legend; min-width: 0; }
+.panels > .is-docked { flex: none; min-width: 0; grid-area: auto; }
+.layout > .hint { grid-area: hint; margin: 0; }
+.layout > .notice { grid-area: notice; margin: 0; }
+
+@container app (min-width: 760px) {
+  .layout {
+    --dock: beside;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-areas: "top top" "map panels" "brush panels" "totals control" "legend legend" "hint hint" "notice notice";
+    align-items: start;
+  }
+  /* Blocks that moved up into the column leave no empty rows behind. */
+  .layout[data-docked="1"] { grid-template-areas: "top top" "map panels" "brush panels" "control legend" "hint hint" "notice notice"; }
+  .layout[data-docked="2"] { grid-template-areas: "top top" "map panels" "brush panels" "legend legend" "hint hint" "notice notice"; }
+  .layout[data-docked="3"] { grid-template-areas: "top top" "map panels" "brush panels" "hint hint" "notice notice"; }
+  .is-building .layout { --dock: none; }
+}
+
+@media (min-height: 720px) {
+  @container app (min-width: 1240px) {
+    .app:not(.is-building) .layout {
+      --dock: column;
+      --screen: 100vh;
+      grid-template-columns: minmax(0, 1fr) minmax(430px, 476px);
+      grid-template-rows: 48px calc(var(--screen) - 140px) 52px;
+      grid-auto-rows: auto;
+      gap: 8px;
+      max-width: none;
+      align-items: stretch;
+    }
+    @supports (height: 100dvh) {
+      .app:not(.is-building) .layout { --screen: 100dvh; }
+    }
+    .app:not(.is-building) .panels { min-height: 0; overflow-y: auto; }
+    /* The detail keeps the height it has with a district selected, so picking the first district moves nothing below it. */
+    .app:not(.is-building) .district-detail { min-height: 123px; }
+    .app:not(.is-building) .map-cell { min-height: 0; }
+    .app:not(.is-building) .map-frame { height: 100%; display: flex; }
+    .app:not(.is-building) .state-map { width: 100%; height: 100%; min-height: 0; }
+    .app:not(.is-building) .top-bar { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+    .app:not(.is-building) .app-header { min-width: 0; }
+    .app:not(.is-building) h1 { margin: 0; text-align: left; font-size: 1.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app:not(.is-building) .state-caption { margin: 0; text-align: left; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app:not(.is-building) .toolbar { flex-wrap: nowrap; margin: 0; }
+    .app:not(.is-building) .matchup-toggle,
+    .app:not(.is-building) .new-map-button,
+    .app:not(.is-building) .build-state-button { min-height: 36px; padding: 0.3rem 0.9rem; }
+
+    /* The brush bar holds every control and a three-line note in its one 52 px row (feature 013). */
+    .app:not(.is-building) .brush-tool { flex-wrap: nowrap; gap: 0 8px; padding: 4px 8px; }
+    .app:not(.is-building) .brush-toggle { flex: none; min-height: 32px; padding: 0.2rem 0.7rem; font-size: 0.9rem; }
+    .app:not(.is-building) .brush-mode { flex: none; flex-direction: column; gap: 0; }
+    .app:not(.is-building) .brush-mode label { min-height: 20px; font-size: 0.85rem; }
+    .app:not(.is-building) .brush-unclaimed { flex: none; max-width: 124px; min-height: 0; font-size: 0.78rem; line-height: 1.15; }
+    .app:not(.is-building) .brush-size-field { flex: none; gap: 4px; }
+    .app:not(.is-building) .brush-size-field label { font-size: 0; }
+    .app:not(.is-building) .brush-size-field label::before { content: "Size"; font-size: 0.85rem; }
+    .app:not(.is-building) .brush-size-field input[type="range"] { width: 80px; min-height: 24px; }
+    .app:not(.is-building) .brush-notes { flex: 1 1 0; min-height: 0; }
+    .app:not(.is-building) .brush-hint,
+    .app:not(.is-building) .brush-message { font-size: 0.75rem; line-height: 1.15; }
+    .app:not(.is-building) .brush-message { min-height: 0; max-height: 3.45em; overflow: hidden; }
+    .app:not(.is-building) .brush-message:empty { display: none; }
+  }
+}
+
+.map-frame,
+.builder,
+.state-totals,
+.brush-tool,
+.control-total,
+.plan-status,
+.legend,
+.district-detail,
+.districts {
+  margin: 0;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+
+.map-frame { padding: 8px; }
+.state-map { display: block; width: 100%; height: auto; }
+
+.precinct {
+  stroke: #ffffff;
+  stroke-width: 0.8;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.precinct:focus { outline: none; }
+.is-editing .precinct { cursor: copy; }
+.precinct.dimmed { opacity: 0.4; }
+/* Inside a revealed district, thin white seams separate the precincts' own colors. */
+.precinct[data-revealed="true"] { stroke: #ffffff; stroke-width: 1; }
+
+.precinct-highlight { fill: none; stroke: var(--focus); stroke-width: 3.5; }
+.district-border { stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; }
+.district-border.selected-border { stroke: var(--accent); stroke-width: 4.5; }
+.state-outline { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+
+.badge circle { stroke: #ffffff; stroke-width: 2; }
+.badge text { font: 700 12px system-ui, sans-serif; }
+.badge.selected circle { stroke: var(--focus); stroke-width: 3; }
+
+.builder,
+.state-totals,
+.brush-tool,
+.control-total,
+.plan-status,
+.district-detail,
+.legend { padding: 12px 14px; }
+.panels .districts,
+.panels .district-detail,
+.panels .plan-status { padding: 8px 10px; }
+
+.totals-total { margin: 0 0 0.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.totals-summary { margin: 0 0 0.6rem; font-size: 0.9rem; color: var(--muted); }
+
+/* Two segments sized by each side's share of all voters; the thin line marks the halfway point. */
+.makeup-bar {
+  position: relative;
+  display: flex;
+  height: 16px;
+  margin: 0 0 0.6rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e4e1d8;
+}
+.makeup-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: #ffffff;
+}
+.makeup-segment { flex: none; height: 100%; }
+
+.totals-rows { display: grid; gap: 8px; margin: 0; }
+.totals-side {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 8px;
+  align-items: center;
+}
+.totals-side dt { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; }
+.totals-name { overflow-wrap: anywhere; }
+.totals-side dd { margin: 0; font-variant-numeric: tabular-nums; }
+.totals-percent { font-weight: 700; text-align: right; }
+.totals-voters { grid-column: 1 / -1; padding-left: 26px; color: var(--muted); font-size: 0.85rem; }
+
+/* Build mode: the district sections give way to the builder panel. */
+.is-building .districts,
+.is-building .district-detail,
+.is-building .message-slot,
+.is-building [data-role="brush-tool"],
+.is-building [data-role="plan-status"],
+.is-building [data-role="control-total"] { display: none; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.builder-help { margin: 0 0 0.6rem; color: var(--muted); font-size: 0.85rem; }
+.builder-count { margin: 0 0 0.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.builder-field { display: grid; gap: 2px; margin: 0 0 0.6rem; }
+.builder-field label { font-weight: 700; font-size: 0.9rem; }
+.builder-field input[type="range"] { width: 100%; min-height: 28px; accent-color: var(--accent); }
+.builder-field input[type="range"]:disabled { opacity: 0.5; }
+.builder-field output { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.builder-message { min-height: 1.2em; margin: 0 0 0.6rem; color: #7a1a14; font-size: 0.9rem; font-weight: 600; }
+.builder-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.builder-actions button {
+  min-height: 40px;
+  padding: 0.4rem 0.9rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 650;
+  cursor: pointer;
+}
+.builder-actions button:hover:not(:disabled) { background: #ece8dc; }
+.builder-actions .builder-use { border-color: var(--accent); background: var(--accent); color: #fff; }
+.builder-actions .builder-use:hover:not(:disabled) { background: #0b5b55; }
+.builder-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.is-building-map { cursor: crosshair; }
+.is-building-map .precinct { cursor: crosshair; }
+
+/* Brush tool: a single row under the map; the notes cell always has room for two lines, so a message never moves anything. */
+.brush-tool { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 8px 12px; }
+.brush-toggle {
+  min-height: 36px;
+  padding: 0.3rem 0.9rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.brush-toggle[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+.brush-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+.brush-mode { display: flex; gap: 12px; margin: 0; padding: 0; border: 0; }
+.brush-mode legend { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.brush-mode label { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-size: 0.95rem; }
+.brush-size-field { display: flex; align-items: center; gap: 8px; }
+.brush-unclaimed { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 0.9rem; }
+.brush-unclaimed input { flex: none; width: 16px; height: 16px; accent-color: var(--accent); }
+.brush-unclaimed:has(input:disabled) { opacity: 0.5; cursor: not-allowed; }
+.brush-size-field label { font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+.brush-size-field input[type="range"] { width: 120px; min-height: 28px; accent-color: var(--accent); }
+.brush-size-field input[type="range"]:disabled { opacity: 0.5; }
+.brush-size-field output { min-width: 2.2ch; color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.brush-notes { flex: 1 1 220px; min-width: 0; min-height: 2.6em; }
+.brush-hint { margin: 0; color: var(--muted); font-size: 0.8rem; line-height: 1.3; }
+.brush-message { min-height: 1.3em; margin: 0; font-size: 0.85rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.brush-circle { fill: rgb(255 255 255 / 0.18); stroke: var(--ink); stroke-width: 2; pointer-events: none; }
+.brush-circle[data-mode="erase"] { stroke-dasharray: 6 4; fill: rgb(0 0 0 / 0.1); }
+.is-brushing-map { cursor: none; }
+.is-brushing-map .precinct { cursor: none; }
+.is-building-map:focus { outline: 3px solid var(--focus); outline-offset: 2px; }
+.city-marker { cursor: pointer; }
+.city-dot { fill: var(--ink); stroke: #ffffff; stroke-width: 2.5; }
+.city-marker:hover .city-dot { fill: #b8302a; }
+.city-marker.selected .city-dot { fill: #b8302a; }
+.city-ring { stroke: #b8302a; stroke-width: 2.5; stroke-dasharray: 4 3; }
+.build-cursor .cursor-cross { fill: none; stroke: var(--ink); stroke-width: 2; }
+.build-cursor .cursor-ring { fill: none; stroke: var(--focus); stroke-width: 3; }
+.state-map:not(:focus) .build-cursor { opacity: 0; }
+
+/* The selected district's detail */
+.detail-prompt { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.detail-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; margin: 0 0 4px; font-size: 1rem; }
+.detail-status { font-size: 0.9rem; font-weight: 700; }
+.detail-status[data-balance="ok"] { color: #1b6e2d; }
+.detail-status[data-balance="over"],
+.detail-status[data-balance="under"] { color: #9a4b00; }
+.detail-distance { color: #9a4b00; font-size: 0.85rem; font-weight: 600; }
+.detail-rows { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 2px 8px; margin: 0; font-size: 0.85rem; }
+.detail-rows dt { color: var(--muted); }
+.detail-rows dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.detail-rows dt.wide { grid-column: 1; }
+.detail-rows dd.wide { grid-column: 2 / -1; }
+
+.panels .plan-status { line-height: 1.25; }
+/* The plan status keeps room for a two-line verdict, so its height (and everything below it) never changes. */
+.panels .plan-status h2 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.panels .plan-overall { min-height: 2.5em; margin: 0 0 2px; font-size: 0.85rem; }
+.panels .balance-result { margin: 0 0 4px; font-size: 0.85rem; }
+.panels .balance-result { min-height: 2.5em; margin: 0 0 2px; font-size: 0.8rem; }
+.panels .plan-rows dd { white-space: nowrap; }
+.panels .plan-rows { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 2px 6px; font-size: 0.76rem; }
+.panels .plan-rows dt { white-space: nowrap; }
+
+.plan-overall { margin: 0 0 0.4rem; font-weight: 700; color: #7a1a14; }
+.plan-overall[data-valid="true"] { color: #1b6e2d; }
+.balance-result { margin: 0 0 0.6rem; font-weight: 600; color: #7a1a14; }
+.balance-result[data-pass="true"] { color: #1b6e2d; }
+.plan-rows {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+.plan-rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.unassigned-overlay { opacity: 1; }
+
+.control-summary { margin: 0 0 0.6rem; font-weight: 600; }
+
+.legend-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 8px;
+  align-items: center;
+  margin: 0;
+}
+.legend-rows dt > .swatch { justify-self: end; }
+
+.control-rows {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px 8px;
+  align-items: center;
+  margin: 0;
+}
+.control-rows dt,
+.legend-rows dt { display: contents; }
+.control-rows dd,
+.legend-rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.control-count { font-weight: 700; }
+
+.legend-shades { display: flex; gap: 2px; }
+.legend-shades span { width: 16px; height: 14px; border-radius: 2px; }
+.legend-note { margin: 0.6rem 0 0; color: var(--muted); font-size: 0.8rem; }
+
+/* Beside the map the three summary blocks keep their content but use tighter spacing, so more of them fit (feature 012). */
+.panels > .is-docked { padding: 6px 10px; }
+.panels > .is-docked h2 { margin: 0 0 3px; font-size: 0.9rem; line-height: 1.2; }
+.is-docked .totals-total,
+.is-docked .totals-summary { margin: 0 0 2px; font-size: 0.82rem; line-height: 1.25; }
+.is-docked .makeup-bar { height: 10px; margin: 3px 0 5px; }
+.is-docked .totals-rows { gap: 2px; }
+.is-docked .totals-side { grid-template-columns: minmax(0, 1fr) auto auto; gap: 0 10px; font-size: 0.85rem; }
+.is-docked .totals-voters { grid-column: auto; padding-left: 0; font-size: 0.8rem; white-space: nowrap; }
+.is-docked .control-summary { margin: 0 0 3px; font-size: 0.82rem; line-height: 1.25; }
+.is-docked .control-rows { grid-template-columns: repeat(2, auto minmax(0, 1fr) auto); gap: 2px 8px; font-size: 0.82rem; }
+.is-docked .legend-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; font-size: 0.82rem; }
+.is-docked .legend-rows dt { display: flex; align-items: center; gap: 6px; }
+.is-docked .legend-rows dt > .swatch { justify-self: auto; }
+.is-docked .legend-shades span { width: 14px; height: 12px; }
+.is-docked .swatch { width: 15px; height: 15px; }
+.is-docked .legend-note { margin: 4px 0 0; font-size: 0.72rem; line-height: 1.25; }
+
+.swatch {
+  display: inline-block;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgb(0 0 0 / 0.2);
+  border-radius: 4px;
+}
+.swatch.empty { background: repeating-linear-gradient(45deg, #fff 0 3px, #c8c8c8 3px 6px); }
+
+.hint { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.9rem; }
+
+/* District picker: small tiles, three lines each (number and leader; status; amount), with the pen at the right. */
+.district-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@container app (min-width: 480px) { .district-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container app (min-width: 760px) { .district-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container app (min-width: 1000px) { .district-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-height: 720px) {
+  @container app (min-width: 1240px) {
+    .app:not(.is-building) .district-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+}
+
+.district-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "leader pen" "balance pen" "amount pen";
+  align-items: center;
+  gap: 0 4px;
+  min-height: 46px;
+  padding: 2px 4px;
+  border: 2px solid #e4e1d8;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.75rem;
+  line-height: 1.15;
+}
+.district-row.selected { border-color: var(--accent); border-width: 3px; padding: 1px 3px; background: var(--accent-soft); }
+.district-row .swatch { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; font-size: 0.6rem; font-weight: 700; }
+.district-row .swatch:not(.empty) { color: #fff; text-shadow: 0 0 2px rgb(0 0 0 / 0.7); }
+.district-name { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.district-leader { grid-area: leader; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.district-status { color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.district-balance { grid-area: balance; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.district-balance[data-balance="ok"] { color: #1b6e2d; }
+.district-balance[data-balance="over"],
+.district-balance[data-balance="under"] { color: #9a4b00; }
+.district-amount { grid-area: amount; color: #9a4b00; font-weight: 700; font-variant-numeric: tabular-nums; min-height: 1.2em; }
+
+.pen {
+  grid-area: pen;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.pen svg { width: 15px; height: 15px; }
+.pen[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+.notice { margin: 0.5rem 0; color: var(--muted); font-size: 0.85rem; text-align: center; }
+
+.tooltip {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  left: 0;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
+}
+.tt-section + .tt-section { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgb(255 255 255 / 0.25); }
+.tt-title { font-weight: 700; }
+.tt-subtitle { margin-top: 2px; color: #cfd5e2; }
+.tt-rows { display: grid; grid-template-columns: auto auto; gap: 2px 12px; margin: 6px 0 0; }
+.tt-rows dt { display: flex; align-items: center; gap: 6px; }
+.tt-rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.tt-rows .swatch { width: 12px; height: 12px; border-color: rgb(255 255 255 / 0.6); }
+
+@media (max-width: 480px) {
+  .app { padding: 10px; }
+  .map-frame { padding: 4px; }
+}
