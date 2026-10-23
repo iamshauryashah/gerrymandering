@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gerrymandering like Gerry the Salamander</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-autostart="true">
+  <main class="app" data-role="app">
+    <div class="app-content">
+      <div class="layout" data-role="layout">
+        <header class="top-bar">
+          <div class="app-header">
+            <h1>Gerrymandering like Gerry the Salamander</h1>
+            <p class="state-caption" data-role="state-caption"></p>
+          </div>
+          <div class="toolbar">
+            <button type="button" class="matchup-toggle" data-role="matchup-toggle">Democrats vs Republicans</button>
+            <button type="button" class="new-map-button" data-role="new-map">New map</button>
+            <button type="button" class="build-state-button" data-role="build-state">Build a state</button>
+          </div>
+        </header>
+
+        <div class="error-message" data-role="error" role="alert" hidden>
+          <p>We couldn't draw a state this time. Please try again.</p>
+          <button type="button" data-role="retry">Try again</button>
+        </div>
+
+        <div class="workspace" data-role="map-layout">
+          <div class="panels" data-role="panels">
+            <section class="builder" data-role="builder" aria-labelledby="builder-heading" hidden>
+              <h2 id="builder-heading">Build your own state</h2>
+              <p class="builder-help">Click inside the state to add a city. Click a city to select it, then use the slider to set its population; Remove city or the Delete key removes it. Cities pull in smaller, denser precincts. Keyboard: focus the map, move the cursor with the arrow keys (hold Shift for big steps), and press Enter.</p>
+              <p class="builder-count" data-role="city-count"></p>
+              <div class="builder-field">
+                <label for="pop-slider" data-role="pop-label">City population</label>
+                <input type="range" id="pop-slider" data-role="pop-slider" min="10" max="300" step="10" value="100" disabled>
+                <output for="pop-slider" data-role="pop-output"></output>
+              </div>
+              <div class="builder-field">
+                <label for="share-slider" data-role="share-label">Side A share of all voters</label>
+                <input type="range" id="share-slider" data-role="share-slider" min="30" max="70" step="0.5" value="50">
+                <output for="share-slider" data-role="share-output"></output>
+              </div>
+              <div class="builder-field">
+                <label for="lean-slider" data-role="lean-label">City lean</label>
+                <input type="range" id="lean-slider" data-role="lean-slider" min="-100" max="100" step="10" value="50">
+                <output for="lean-slider" data-role="lean-output"></output>
+              </div>
+              <p class="builder-message" data-role="build-message" role="status" aria-live="polite"></p>
+              <ul class="visually-hidden" data-role="city-list" aria-label="Cities placed"></ul>
+              <div class="builder-actions">
+                <button type="button" class="builder-use" data-role="build-use">Use this state</button>
+                <button type="button" data-role="build-remove" disabled>Remove city</button>
+                <button type="button" data-role="build-cancel">Cancel</button>
+                <button type="button" data-role="build-clear">Clear cities</button>
+                <button type="button" data-role="build-outline">New outline</button>
+              </div>
+            </section>
+
+            <section class="districts" aria-labelledby="districts-heading">
+              <h2 id="districts-heading" class="visually-hidden">Congressional districts</h2>
+              <ol class="district-list" data-role="district-list"></ol>
+            </section>
+
+            <section class="district-detail" data-role="district-detail" aria-label="Selected district">
+              <p class="editing-status" data-role="editing-status" role="status" aria-live="polite" hidden></p>
+              <div data-role="district-detail-body"></div>
+            </section>
+
+            <section class="plan-status" data-role="plan-status" aria-live="polite"></section>
+
+            <div class="message-slot">
+              <p class="edit-message" data-role="edit-message" role="alert" hidden></p>
+            </div>
+          </div>
+
+          <section class="brush-tool" data-role="brush-tool" aria-labelledby="brush-heading">
+            <h2 id="brush-heading" class="visually-hidden">Brush</h2>
+            <button type="button" class="brush-toggle" data-role="brush-toggle" aria-pressed="false" disabled>Brush: off</button>
+            <fieldset class="brush-mode" data-role="brush-mode" data-mode="add">
+              <legend>Brush mode</legend>
+              <label><input type="radio" name="brush-mode" value="add" checked disabled> Add</label>
+              <label><input type="radio" name="brush-mode" value="erase" disabled> Erase</label>
+            </fieldset>
+            <label class="brush-unclaimed"><input type="checkbox" data-role="brush-unclaimed" disabled> Only unclaimed precincts</label>
+            <span class="visually-hidden" id="brush-unclaimed-note" data-role="brush-unclaimed-note">Applies to Add only</span>
+            <div class="brush-size-field">
+              <label for="brush-size">Brush size</label>
+              <input type="range" id="brush-size" data-role="brush-size" min="10" max="150" step="5" value="50" disabled>
+              <output for="brush-size" data-role="brush-size-output">50</output>
+            </div>
+            <div class="brush-notes">
+              <p class="brush-hint" data-role="brush-hint">Pick a district's pen to use the brush.</p>
+              <p class="brush-message" data-role="brush-message" role="status" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <div class="map-cell">
+            <figure class="map-frame" data-role="map-frame">
+              <svg class="state-map" data-role="map" viewBox="0 0 800 600" role="group" aria-label="Generated state map"></svg>
+            </figure>
+          </div>
+        </div>
+
+        <section class="state-totals" data-role="state-totals" aria-labelledby="state-totals-heading" aria-live="polite"></section>
+        <section class="control-total" data-role="control-total" aria-live="polite"></section>
+        <section class="legend" data-role="legend"></section>
+        <p class="hint">Hover over or tab to a district for its voter details. Click a pen, then click precincts on the map, or turn on the brush and paint many at once. Districts must stay connected, and the largest district may have at most 10% more voters than the smallest.</p>
+        <p class="notice" data-role="notice">This state, its precincts, and every voter in it are fictional: randomly generated, or built by you with "Build a state". Districts start empty for you to draw. Every voter's choice is known, so all results are exact counts.</p>
+      </div>
+    </div>
+    <div class="tooltip" data-role="tooltip" role="tooltip" hidden></div>
+  </main>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
