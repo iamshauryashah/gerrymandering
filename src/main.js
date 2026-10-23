@@ -502,12 +502,9 @@ export function createApp(root, {
   // Closes the builder and shows the built state with every district empty.
   function useBuiltState() {
     if (!app.draft || !app.draft.result.ok) return false;
-    app.state = app.draft.result.state;
-    leaveBuilder();
-    mapView.setState(app.state);
-    setAddress('custom', app.state.seed);
-    renderCaption();
-    renderAll();
+    const state = app.draft.result.state;
+    showState(state);
+    setAddress('custom', state.seed);
     return true;
   }
 

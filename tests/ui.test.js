@@ -2174,6 +2174,18 @@ test('the box is remembered across selections, brush and matchup changes, and re
   cleanup();
 });
 
+test('using a custom state resets the unclaimed-only setting (013 FR-008)', async () => {
+  const { root, app, cleanup } = await mount('demo-1');
+  app.setEditing(1);
+  click(unclaimedBox(root));
+  assertEqual(app.brush.unclaimedOnly, true, 'the setting is on before building');
+  assert(app.startBuilder(), 'the builder starts');
+  assert(app.useBuiltState(), 'the custom state is used');
+  assertEqual(app.state.custom, true, 'the displayed state is custom');
+  assertEqual([app.brush.unclaimedOnly, unclaimedBox(root).checked], [false, false], 'using a custom state resets the setting');
+  cleanup();
+});
+
 test('a stroke message replaces the hint in the notes cell and the hint returns when it is cleared (013 FR-009, FR-013)', async () => {
   const { root, app, cleanup } = await mount('demo-1');
   const hint = q(root, 'brush-hint');

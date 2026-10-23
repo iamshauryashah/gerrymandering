@@ -42,9 +42,15 @@ Builds on [010](../010-precinct-brush-tool/plan.md) and [011](../011-single-scre
 
 ## Constitution Check
 
-**Result**: PASS. The constitution is an unfilled template, so the baseline gates of earlier features apply and are met: static site, no dependencies, keyboard and touch parity, accessible name and state for the new control, behavior covered by tests in the parallel suite.
+**Pre-research result**: PASS.
 
-**Post-design re-check**: still PASS. No departures.
+- **I. Fictional Data and Clear Provenance**: PASS. The feature changes brush behavior only; it introduces no real-world data.
+- **II. Trustworthy Data and Model Invariants**: PASS. Claimed precincts remain assigned, and seeded tests cover determinism, connectivity, and unchanged behavior when the setting is off.
+- **III. Accessible, Responsive Interaction**: PASS. The labeled native checkbox supports keyboard use and exposes its state; layout tests cover the one-screen and narrow-screen constraints.
+- **IV. Simple Static-First Architecture**: PASS. The feature uses existing static browser code and adds no service, persistence, or dependency.
+- **V. Specification and Test Discipline**: PASS. Requirements, acceptance scenarios, and regression tests cover the new behavior and existing brush guarantees.
+
+**Post-design re-check**: PASS. The model, control, and layout design remain within all five principles; no exceptions or complexity justifications are required.
 
 ## Project Structure
 
