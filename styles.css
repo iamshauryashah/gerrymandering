@@ -32,8 +32,15 @@ h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
 .state-caption { margin: 0 0 0.5rem; text-align: center; color: var(--muted); }
 .state-caption a { color: inherit; }
 
-.top-bar { display: flex; flex-direction: column; align-items: center; }
+/* Leave the top-right corner to the shared navigation launcher (46px plus clearance).
+   Keep all game controls in Gerry; do not change or duplicate navigation behavior. */
+.top-bar { display: flex; flex-direction: column; align-items: center; padding-right: 88px; }
 .toolbar { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+/* On narrow screens, put Gerry's header below the floating launcher instead
+   of squeezing gameplay controls into the same horizontal corner. */
+@media (max-width: 620px) {
+  .top-bar { padding-right: 0; padding-top: 56px; }
+}
 
 button { font: inherit; }
 
