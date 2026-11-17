@@ -59,6 +59,17 @@
               </div>
             </section>
 
+            <section class="election-swing" data-role="election-swing" aria-labelledby="swing-heading">
+              <div class="swing-heading">
+                <h2 id="swing-heading"><label for="swing-slider">Election swing</label></h2>
+                <button type="button" data-role="swing-reset" disabled>Reset</button>
+              </div>
+              <div class="swing-ends"><span data-role="swing-side-a">Democrats +6</span><span data-role="swing-side-b">Republicans +6</span></div>
+              <input type="range" id="swing-slider" data-role="swing-slider" min="-6" max="6" step="0.1" value="0" aria-describedby="swing-help">
+              <output for="swing-slider" data-role="swing-output" aria-live="polite">Original votes (0 points)</output>
+              <p id="swing-help">Shift each precinct’s vote share by up to 6 percentage points. Voter totals and your districts stay the same. Shares stop at 0% and 100%.</p>
+            </section>
+
             <section class="districts" aria-labelledby="districts-heading">
               <h2 id="districts-heading" class="visually-hidden">Congressional districts</h2>
               <ol class="district-list" data-role="district-list"></ol>

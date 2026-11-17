@@ -113,6 +113,20 @@
         "styles.css"
       ],
       "shards": 3
+    },
+    "swing": {
+      "files": [
+        "election-swing.test.js"
+      ],
+      "covers": [
+        "src/election-swing.js",
+        "src/main.js",
+        "src/districts.js",
+        "src/ui/map-view.js",
+        "index.html",
+        "styles.css"
+      ],
+      "shards": 1
     }
   }
 }

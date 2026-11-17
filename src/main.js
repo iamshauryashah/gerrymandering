@@ -1,3 +1,4 @@
+import { applyElectionSwing, normalizeSwing } from './election-swing.js';
 import { generateState } from './state-generator.js';
 import { applyPrecinctEdit, getControlTotal, getPlanStatus, reassignPrecinct, summarizeDistricts } from './districts.js';
 import { MATCHUPS } from './matchups.js';
@@ -36,6 +37,12 @@ export function createApp(root, {
 } = {}) {
   const $ = (role) => root.querySelector(`[data-role="${role}"]`);
   const elements = {
+    swing: $('election-swing'),
+    swingSlider: $('swing-slider'),
+    swingOutput: $('swing-output'),
+    swingA: $('swing-side-a'),
+    swingB: $('swing-side-b'),
+    swingReset: $('swing-reset'),
     caption: $('state-caption'),
     toggle: $('matchup-toggle'),
     newMap: $('new-map'),
@@ -59,6 +66,8 @@ export function createApp(root, {
 
   const app = {
     state: null,
+    swing: 0,
+    swingBaseline: null,
     matchup: MATCHUPS[0],
     editingDistrict: null,
     inspected: null,
@@ -364,9 +373,40 @@ export function createApp(root, {
     renderStateTotals(elements.stateTotals, app.state, app.matchup);
   }
 
+  function renderSwing() {
+    if (!elements.swing) return;
+    elements.swing.hidden = app.mode !== 'view' || !app.state;
+    elements.swingA.textContent = `${app.matchup.sideA.name} +6`;
+    elements.swingB.textContent = `${app.matchup.sideB.name} +6`;
+    elements.swingA.style.color = app.matchup.sideA.shades[3];
+    elements.swingB.style.color = app.matchup.sideB.shades[3];
+    elements.swingSlider.value = String(app.swing);
+    const side = app.swing < 0 ? app.matchup.sideA : app.matchup.sideB;
+    const label = app.swing === 0 ? 'Original votes (0 points)' : `${Math.abs(app.swing).toFixed(1)} points toward ${side.name}`;
+    elements.swingOutput.textContent = label;
+    elements.swingSlider.setAttribute('aria-valuetext', label);
+    elements.swingReset.disabled = app.swing === 0;
+  }
+
+  function setSwing(value) {
+    if (!app.state || app.mode !== 'view') return false;
+    abortStroke();
+    app.swing = normalizeSwing(value);
+    app.state = applyElectionSwing(app.state, app.swingBaseline, app.swing);
+    app.inspected = null;
+    tooltip.hide();
+    mapView.setState(app.state);
+    renderAll();
+    return true;
+  }
+
+  elements.swingSlider?.addEventListener('input', () => setSwing(elements.swingSlider.value));
+  elements.swingReset?.addEventListener('click', () => setSwing(0));
+
   function renderAll() {
     if (!app.state) return;
     mapView.render(app.matchup, app.editingDistrict);
+    renderSwing();
     renderLegend(elements.legend, app.matchup);
     renderStateTotalsView();
     renderDistrictViews();
@@ -535,6 +575,8 @@ export function createApp(root, {
     if (!app.draft) return false;
     const { snapshot } = app.draft;
     app.state = snapshot.state;
+    app.swing = snapshot.swing;
+    app.swingBaseline = snapshot.swingBaseline;
     leaveBuilder();
     mapView.setState(app.state);
     window.history.replaceState(null, '', snapshot.address);
@@ -547,7 +589,7 @@ export function createApp(root, {
     if (app.mode === 'build' || !app.state) return false;
     const hasWork = Object.values(app.state.assignments).some((d) => d !== null);
     if (hasWork && !confirm('Build a state? Your districts will be lost.')) return false;
-    const snapshot = { state: app.state, address: `${window.location.pathname}${window.location.search}${window.location.hash}` };
+    const snapshot = { state: app.state, swing: app.swing, swingBaseline: app.swingBaseline, address: `${window.location.pathname}${window.location.search}${window.location.hash}` };
     const { plan, result } = freshDraftPlan();
     app.mode = 'build';
     app.draft = { plan, result, snapshot, selected: null, lastPopulation: DEFAULT_POPULATION };
@@ -619,7 +661,10 @@ export function createApp(root, {
     abortStroke();
     app.brush = { on: false, size: BRUSH_SIZE.default, mode: 'add', unclaimedOnly: false };
     brushPanel?.say('');
-    app.state = state;
+    // Give voter-only updates a stable layout identity, including random maps.
+    app.state = state.layoutKey === undefined ? { ...state, layoutKey: state.precincts } : state;
+    app.swing = 0;
+    app.swingBaseline = app.state.precincts;
     app.editingDistrict = null;
     app.inspected = null;
     showEditMessage(null);
@@ -732,6 +777,8 @@ export function createApp(root, {
     districtList,
     tooltip,
     setEditing,
+    setSwing,
+    get swing() { return app.swing; },
     setBrush(options = {}) {
       if (options.on !== undefined && !setBrushOn(options.on) && options.on) return false;
       setBrushOptions(options);
