@@ -1,0 +1,15 @@
+.git/
+.github/
+.specify/
+.wrangler/
+node_modules/
+worker/
+tests/
+tests-node/
+scripts/
+specs/
+package*.json
+wrangler.toml
+README.md
+.dev.vars*
+.env*

@@ -1,0 +1,12 @@
+{
+  "name": "gerry-the-salamander",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests-node/*.test.js",
+    "test:browser": "python3 scripts/test.py",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

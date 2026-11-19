@@ -127,6 +127,18 @@
         "styles.css"
       ],
       "shards": 1
+    },
+    "saved-maps": {
+      "files": [
+        "saved-maps.test.js"
+      ],
+      "covers": [
+        "src",
+        "worker",
+        "index.html",
+        "styles.css"
+      ],
+      "shards": 1
     }
   }
 }

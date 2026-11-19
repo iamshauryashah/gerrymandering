@@ -23,3 +23,7 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+
+# Cloudflare local state and secrets
+.wrangler/
+.dev.vars*

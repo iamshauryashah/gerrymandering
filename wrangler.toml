@@ -1,0 +1,20 @@
+name = "gerry02"
+main = "worker/index.js"
+compatibility_date = "2026-11-18"
+
+[assets]
+directory = "."
+binding = "ASSETS"
+run_worker_first = true
+
+[[services]]
+binding = "AUTH"
+service = "user-management"
+
+[[durable_objects.bindings]]
+name = "SAVED_MAPS"
+class_name = "SavedMaps"
+
+[[migrations]]
+tag = "saved-maps-v1"
+new_sqlite_classes = ["SavedMaps"]

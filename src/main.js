@@ -1,4 +1,6 @@
 import { applyElectionSwing, normalizeSwing } from './election-swing.js';
+import { captureMap, restoreMap } from './map-save.js';
+import { createSavedMaps } from './ui/saved-maps.js';
 import { generateState } from './state-generator.js';
 import { applyPrecinctEdit, getControlTotal, getPlanStatus, reassignPrecinct, summarizeDistricts } from './districts.js';
 import { MATCHUPS } from './matchups.js';
@@ -327,7 +329,7 @@ export function createApp(root, {
 
   const lastSummary = () => app.lastStroke;
 
-  createMatchupToggle(elements.toggle, {
+  const matchupToggle = createMatchupToggle(elements.toggle, {
     onChange(matchup) {
       abortStroke();
       app.matchup = matchup;
@@ -755,6 +757,22 @@ export function createApp(root, {
     : null;
 
   return {
+    captureSnapshot() {
+      if (!app.state || app.mode !== 'view') throw new Error('Finish building your state before saving it.');
+      abortStroke();
+      return captureMap(app.state, app.swingBaseline, app.swing, app.matchup.id);
+    },
+    openSnapshot(snapshot) {
+      const restored = restoreMap(snapshot);
+      if (app.mode === 'build') throw new Error('Finish or cancel your state builder before opening a saved map.');
+      const hasWork = app.state && Object.values(app.state.assignments).some(d => d !== null);
+      if (hasWork && !confirm('Open this saved map? Any unsaved changes to your current map will be replaced.')) return false;
+      showState(restored.state);
+      matchupToggle.setMatchup(restored.matchup);
+      setSwing(restored.swing);
+      setAddress(app.state.custom ? 'custom' : 'seed', app.state.seed);
+      return true;
+    },
     get state() {
       return app.state;
     },
@@ -823,5 +841,6 @@ if (document.body?.dataset.autostart === 'true') {
   const t0 = performance.now();
   const instance = createApp(document.querySelector('[data-role="app"]'), { seed: getSeedFromUrl(), custom: getCustomCodeFromUrl() });
   window.gerryApp = instance;
+  createSavedMaps(document.querySelector('[data-role="app"]'), instance);
   window.gerryLoadMs = performance.now() - t0;
 }

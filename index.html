@@ -59,6 +59,11 @@
               </div>
             </section>
 
+            <section class="saved-maps-tools" aria-label="Maps in your profile">
+              <button type="button" data-role="save-map">Save map</button>
+              <button type="button" data-role="my-maps">My maps</button>
+            </section>
+
             <section class="election-swing" data-role="election-swing" aria-labelledby="swing-heading">
               <div class="swing-heading">
                 <h2 id="swing-heading"><label for="swing-slider">Election swing</label></h2>
@@ -122,6 +127,17 @@
         <p class="notice" data-role="notice">This state, its precincts, and every voter in it are fictional: randomly generated, or built by you with "Build a state". Districts start empty for you to draw. Every voter's choice is known, so all results are exact counts.</p>
       </div>
     </div>
+    <dialog class="maps-dialog" data-role="maps-dialog" aria-labelledby="maps-heading">
+      <div class="maps-dialog-heading"><h2 id="maps-heading">My maps</h2><button type="button" data-role="maps-close" aria-label="Close saved maps">Close</button></div>
+      <p data-role="maps-message" role="status" aria-live="polite">Log in with your website account to save and open your maps.</p>
+      <button type="button" data-role="maps-login">Log in or sign up</button>
+      <form data-role="map-save-form" hidden>
+        <label for="map-save-name">Map name</label>
+        <input id="map-save-name" data-role="map-save-name" maxlength="80" required autocomplete="off">
+        <button type="submit" data-role="map-save-submit">Save to my profile</button>
+      </form>
+      <ul class="saved-map-list" data-role="saved-map-list" aria-label="Saved maps"></ul>
+    </dialog>
     <div class="tooltip" data-role="tooltip" role="tooltip" hidden></div>
   </main>
   <script type="module" src="src/main.js"></script>

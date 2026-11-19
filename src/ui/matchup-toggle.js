@@ -17,6 +17,11 @@ export function createMatchupToggle(button, { initialId = MATCHUPS[0].id, onChan
 
   render();
   return {
+    setMatchup(id) {
+      current = getMatchup(id);
+      render();
+      onChange?.(current);
+    },
     get matchup() {
       return current;
     },
